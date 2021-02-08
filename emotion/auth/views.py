@@ -514,10 +514,8 @@ class FeelingAPI(MethodView):
 			company_id = request.form.get('company_id')
 			order_id = request.form.get('order_id')
 			password = request.form.get('password')
-			print(password)
 			receiver = Receiver(contact_channel_id, contact_channel_description, address, zipcode)
 			feeling = Feeling(user, receiver, company_id, order_id, password)
-			print(feeling.password)
 
 			db.session.add(receiver)
 			db.session.add(feeling)
@@ -571,8 +569,9 @@ class FeelingAPI(MethodView):
 			db.session.refresh(feeling_file)
 
 			self.save_file(feeling, file_from_request, feeling_file)
+			print(feeling_uuid + "AAAAAAAAA")
 
-			feeling_files = FeelingFile.query.filter_by(uuid=feeling_uuid).all()
+			feeling_files = FeelingFile.query.filter_by(feeling_id=feeling_uuid).all()
 			feeling_file_dicts = []
 			for file in feeling_files:
 				feeling_file_dicts.append(file.as_dict())
@@ -591,6 +590,48 @@ class FeelingAPI(MethodView):
 
 		return make_response(jsonify(responseObject)), 200
 
+	def delete(self, feeling_uuid, feeling_file_uuid):
+
+		feeling = Feeling.query.filter_by(internal_uuid=feeling_uuid).first()
+		feeling_file = FeelingFile.query.filter_by(uuid=feeling_file_uuid).first()
+
+		if feeling is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'Feeling not found.'
+			}
+
+			return make_response(jsonify(responseObject)), 400
+
+		if feeling_file is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'Feeling File not found.'
+			}
+
+			return make_response(jsonify(responseObject)), 400
+
+		os.remove(current_app.config['UPLOAD_PATH'] + '/' + str(feeling.id_) + '/' + feeling_file.uuid)
+
+		db.session.delete(feeling_file)
+		db.session.commit()
+
+		feeling_files = FeelingFile.query.filter_by(feeling_id=feeling_uuid).all()
+		feeling_file_dicts = []
+		for file in feeling_files:
+			feeling_file_dicts.append(file.as_dict())
+
+		feeling_dict = feeling.as_dict()
+		feeling_dict['files'] = feeling_file_dicts
+
+		responseObject = {
+			'status': 'success',
+			'data': {
+				'feeling': feeling_dict
+			}
+		}
+
+		return make_response(jsonify(responseObject)), 200
 
 
 class ContactChannelAPI(MethodView):
@@ -643,6 +684,7 @@ auth_blueprint.add_url_rule('/auth/status', view_func=user_view, methods=['GET']
 auth_blueprint.add_url_rule('/auth/logout', view_func=logout_view, methods=['POST'])
 auth_blueprint.add_url_rule('/feeling', view_func=feeling_view, methods=['POST'], defaults={'feeling_uuid': None})
 auth_blueprint.add_url_rule('/feeling/<string:feeling_uuid>/file', view_func=feeling_view, methods=['POST'])
+auth_blueprint.add_url_rule('/feeling/<string:feeling_uuid>/file/<string:feeling_file_uuid>', view_func=feeling_view, methods=['DELETE'])
 auth_blueprint.add_url_rule('/feeling', view_func=feeling_view, methods=['GET'])
 auth_blueprint.add_url_rule('/external', view_func=external_view, methods=['GEt', 'POST'])
 auth_blueprint.add_url_rule('/contact_channels', view_func=contact_channels_view, methods=['GET'])

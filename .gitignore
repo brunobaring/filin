@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # custom files
-emotion/uploads
+emotion/uploads/*
 emotion/db.sqlite
