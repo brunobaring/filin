@@ -1,16 +1,16 @@
 """empty message
 
-Revision ID: b587bb362de3
+Revision ID: 2fab5181e28e
 Revises: 
-Create Date: 2021-02-08 14:50:31.461470
+Create Date: 2021-02-09 18:49:32.225660
 
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b587bb362de3'
+revision = '2fab5181e28e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -61,8 +61,8 @@ def upgrade():
     )
     op.create_table('feeling',
     sa.Column('id_', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('internal_uuid', sa.String(length=36), nullable=False),
-    sa.Column('external_uuid', sa.String(length=36), nullable=False),
+    sa.Column('internal_uuid', postgresql.UUID(as_uuid=True), nullable=True),
+    sa.Column('external_uuid', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('creator_id', sa.Integer(), nullable=False),
     sa.Column('receiver_id', sa.Integer(), nullable=False),
     sa.Column('has_seen', sa.Boolean(), nullable=False),
@@ -74,16 +74,19 @@ def upgrade():
     sa.ForeignKeyConstraint(['company_id'], ['company.id_'], ),
     sa.ForeignKeyConstraint(['creator_id'], ['user.id_'], ),
     sa.ForeignKeyConstraint(['receiver_id'], ['receiver.id_'], ),
-    sa.PrimaryKeyConstraint('id_')
+    sa.PrimaryKeyConstraint('id_'),
+    sa.UniqueConstraint('external_uuid'),
+    sa.UniqueConstraint('internal_uuid')
     )
     op.create_table('feeling_file',
     sa.Column('id_', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('uuid', sa.String(length=36), nullable=False),
+    sa.Column('uuid', postgresql.UUID(as_uuid=True), nullable=True),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('seen_count', sa.Integer(), nullable=False),
-    sa.Column('feeling_id', sa.Integer(), nullable=False),
+    sa.Column('feeling_id', postgresql.UUID(as_uuid=True), nullable=False),
     sa.ForeignKeyConstraint(['feeling_id'], ['feeling.internal_uuid'], ),
-    sa.PrimaryKeyConstraint('id_')
+    sa.PrimaryKeyConstraint('id_'),
+    sa.UniqueConstraint('uuid')
     )
     # ### end Alembic commands ###
 

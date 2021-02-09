@@ -6,6 +6,7 @@ from emotion import db
 from flask import current_app, jsonify
 from sqlalchemy.sql import func
 import uuid
+from sqlalchemy.dialects.postgresql import UUID
 
 
 
@@ -32,14 +33,14 @@ class FeelingFile(db.Model):
     __tablename__ = 'feeling_file'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    uuid = db.Column(db.String(36), nullable=False)
+    uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
     name = db.Column(db.String(100), nullable=False)
     seen_count = db.Column(db.Integer, nullable=False, default=0)
-    feeling_id = db.Column(db.Integer, db.ForeignKey('feeling.internal_uuid'), nullable=False)
+    feeling_id = db.Column(UUID(as_uuid=True), db.ForeignKey('feeling.internal_uuid'), nullable=False)
     feeling = db.relationship("Feeling")
 
     def __init__(self, feeling, name):
-        self.uuid = str(uuid.uuid4())
+        # self.uuid = str(uuid.uuid4())
         self.feeling = feeling
         self.name = name
 
@@ -102,8 +103,8 @@ class Feeling(db.Model):
     __tablename__ = 'feeling'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    internal_uuid = db.Column(db.String(36), nullable=False)
-    external_uuid = db.Column(db.String(36), nullable=False)
+    internal_uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
+    external_uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id_'), nullable=False)
     creator = db.relationship("User")
     receiver_id = db.Column(db.Integer, db.ForeignKey('receiver.id_'), nullable=False)
@@ -120,8 +121,8 @@ class Feeling(db.Model):
     def __init__(self, creator, receiver, company_id, order_id, password=None):
         self.creator = creator
         self.receiver = receiver
-        self.internal_uuid = str(uuid.uuid4())
-        self.external_uuid = str(uuid.uuid4())
+        # self.internal_uuid = str(uuid.uuid4())
+        # self.external_uuid = str(uuid.uuid4())
         self.company_id = company_id
         self.order_id = order_id
         if password == None:
