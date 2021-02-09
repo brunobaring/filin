@@ -10,23 +10,15 @@ from sqlalchemy import event
 
 # init SQLAlchemy so we can use it later in our models
 db = SQLAlchemy()
-from emotion import models
+from emotion import models, config
 
 def create_app():
 	app = Flask(__name__)
 	CORS(app)
-	basedir = os.path.abspath(os.path.dirname(__file__))
-	app_settings = os.getenv(
-	    'APP_SETTINGS',
-	    'emotion.config.DevelopmentConfig'
-	)
-	app.config.from_object(app_settings)
-	app.config['SECRET_KEY'] = 'abcde'
-	app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
+
+	app.config.from_object(os.getenv('APP_SETTINGS'))
 	app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024   # 10MB
 	app.config['UPLOAD_EXTENSIONS'] = ['.jpg', '.png', '.gif']
-	app.config['UPLOAD_PATH'] = 'emotion/uploads'
-	app.config.update(SESSION_COOKIE_NAME="Jjabba")
 
 	db.init_app(app)
 

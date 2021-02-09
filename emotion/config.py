@@ -1,35 +1,26 @@
 import os
-basedir = os.path.abspath(os.path.dirname(__file__))
-postgres_local_base = 'postgresql://postgres:@localhost/'
-database_name = 'flask_jwt_auth'
 
-
-class BaseConfig:
+class BaseConfig(object):
     """Base configuration."""
-    SECRET_KEY = os.getenv('SECRET_KEY', 'my_precious')
-    DEBUG = False
-    BCRYPT_LOG_ROUNDS = 13
+    # DEBUG = False
+    # BCRYPT_LOG_ROUNDS = 13
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
+    SECRET_KEY = os.getenv('FILIN_SECRET_KEY')
 
 class DevelopmentConfig(BaseConfig):
     """Development configuration."""
+    # BCRYPT_LOG_ROUNDS = 4
     DEBUG = True
-    BCRYPT_LOG_ROUNDS = 4
-    SQLALCHEMY_DATABASE_URI = postgres_local_base + database_name
+    SQLALCHEMY_DATABASE_URI = os.getenv('FILIN_DATABASE_URL') + 'dev'
 
-
-class TestingConfig(BaseConfig):
+class StagingConfig(BaseConfig):
     """Testing configuration."""
+    # BCRYPT_LOG_ROUNDS = 4
+    # PRESERVE_CONTEXT_ON_EXCEPTION = False
     DEBUG = True
-    TESTING = True
-    BCRYPT_LOG_ROUNDS = 4
-    SQLALCHEMY_DATABASE_URI = postgres_local_base + database_name + '_test'
-    PRESERVE_CONTEXT_ON_EXCEPTION = False
-
+    SQLALCHEMY_DATABASE_URI = os.getenv('FILIN_DATABASE_URL') + 'stage'
 
 class ProductionConfig(BaseConfig):
     """Production configuration."""
-    SECRET_KEY = 'my_precious'
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = 'postgresql:///example'
+    SQLALCHEMY_DATABASE_URI = os.getenv('FILIN_DATABASE_URL') + 'prod'

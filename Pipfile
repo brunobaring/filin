@@ -42,6 +42,7 @@ typing-extensions = "==3.7.4.3"
 virtualenv = "==20.4.2"
 virtualenv-clone = "==0.5.4"
 zipp = "==3.4.0"
+psycopg2 = "==2.8.6"
 
 [dev-packages]
 
