@@ -1,1 +1,1 @@
-python run_emotion.py
+web: gunicorn run_emotion:emotion
