@@ -32,6 +32,16 @@ MarkupSafe = "==1.1.1"
 PyJWT = "==1.4.2"
 SQLAlchemy = "==1.3.22"
 Werkzeug = "==1.0.1"
+appdirs = "==1.4.4"
+distlib = "==0.3.1"
+filelock = "==3.0.12"
+gunicorn = "==20.0.4"
+importlib-metadata = "==3.4.0"
+pipenv = "==2020.11.15"
+typing-extensions = "==3.7.4.3"
+virtualenv = "==20.4.2"
+virtualenv-clone = "==0.5.4"
+zipp = "==3.4.0"
 
 [dev-packages]
 
