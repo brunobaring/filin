@@ -8,9 +8,12 @@ from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
 from sqlalchemy import event
 
-# init SQLAlchemy so we can use it later in our models
+
+
 db = SQLAlchemy()
 from emotion import models, config
+
+
 
 def create_app():
 	app = Flask(__name__)
@@ -37,18 +40,30 @@ def create_app():
 	from .models import User
 	@login_manager.user_loader
 	def load_user(user_id):
-		# since the user_id is just the primary key of our user table, use it in the query for the user
 		return User.query.get(int(user_id))
 
-	# blueprint for auth routes in our app
-	from emotion.auth.views import auth_blueprint
+	from emotion.api.feeling import feeling_blueprint
+	app.register_blueprint(feeling_blueprint)
+
+	from emotion.api.company import company_blueprint
+	app.register_blueprint(company_blueprint)
+
+	from emotion.api.contact_channel import contact_channel_blueprint
+	app.register_blueprint(contact_channel_blueprint)
+
+	from emotion.api.defaults import defaults_blueprint
+	app.register_blueprint(defaults_blueprint)
+
+	from emotion.api.user import user_blueprint
+	app.register_blueprint(user_blueprint)
+
+	from emotion.api.logout import logout_blueprint
+	app.register_blueprint(logout_blueprint)
+
+	from emotion.api.auth import auth_blueprint
 	app.register_blueprint(auth_blueprint)
 
-	# blueprint for non-auth parts of app
-	from . main import main as main_blueprint
-	app.register_blueprint(main_blueprint)
-
-
-
+	from emotion.api.external import external_blueprint
+	app.register_blueprint(external_blueprint)
 
 	return app
