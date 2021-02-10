@@ -106,7 +106,7 @@ class ExternalAPI(MethodView):
 				}
 				return make_response(jsonify(responseObject)), 404
 
-		feeling_files = FeelingFile.query.filter_by(uuid=feeling.internal_uuid).all()
+		feeling_files = FeelingFile.query.filter_by(feeling_id=feeling.internal_uuid).all()
 		feeling_file_dicts = []
 		for file in feeling_files:
 			feeling_file_dicts.append(file.as_dict())
