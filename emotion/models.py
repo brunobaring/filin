@@ -10,6 +10,28 @@ from sqlalchemy.dialects.postgresql import UUID
 
 
 
+class Scope(db.Model):
+    __tablename__ = 'scope'
+
+    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+
+
+class UserRole(db.Model):
+    __tablename__ = 'user_role'
+
+    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    scope_id = db.Column(db.Integer, db.ForeignKey('scope.id_'), nullable=False)
+    scope = db.relationship("Scope")
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+
+
 class Company(db.Model):
     __tablename__ = 'company'
 
