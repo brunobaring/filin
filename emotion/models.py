@@ -10,25 +10,55 @@ from sqlalchemy.dialects.postgresql import UUID
 
 
 
+SCOPE_GET_FEELING_EXTERNAL_UUID = 'GET_FEELING_EXTERNAL_UUID'
+SCOPE_GET_ALL_COMPANIES = 'GET_ALL_COMPANIES'
+SCOPE_GET_COMPANY_BY_ID = 'GET_COMPANY_BY_ID'
+SCOPE_GET_CONTACT_CHANNELS = 'GET_CONTACT_CHANNEL'
+SCOPE_CREATE_FEELING = 'CREATE_FEELING'
+SCOPE_DELETE_FEELING_FILE = 'DELETE_FEELING_FILE'
+SCOPE_CREATE_FEELING_FILE = 'CREATE_FEELING_FILE'
+SCOPE_GET_USER = 'GET_USER'
 class Scope(db.Model):
     __tablename__ = 'scope'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(255), unique=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
+    def __init__(self, name):
+        self.name = name
 
 
+
+USER_ROLE_ADMIN = 'ADMIN'
+USER_ROLE_USER = 'USER'
+USER_ROLE_COMPANY = 'COMPANY'
 class UserRole(db.Model):
     __tablename__ = 'user_role'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
-    scope_id = db.Column(db.Integer, db.ForeignKey('scope.id_'), nullable=False)
-    scope = db.relationship("Scope")
+    name = db.Column(db.String(255), unique=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+    def __init__(self, name):
+        self.name = name
+
+
+
+class UserRoleScope(db.Model):
+    __tablename__ = 'user_role_scope'
+
+    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id_'), nullable=False)
+    user_role = db.relationship("UserRole")
+    scope_id = db.Column(db.Integer, db.ForeignKey('scope.id_'), nullable=False)
+    scope = db.relationship("Scope")
+
+    def __init__(self, user_role, scope):
+        self.user_role = user_role
+        self.scope = scope
 
 
 
@@ -36,7 +66,7 @@ class Company(db.Model):
     __tablename__ = 'company'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(255), unique=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
@@ -73,11 +103,128 @@ class FeelingFile(db.Model):
         }
 
 
+
+class Feeling(db.Model):
+    __tablename__ = 'feeling'
+
+    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    internal_uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
+    external_uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id_'), nullable=False)
+    creator = db.relationship("User")
+    receiver_id = db.Column(db.Integer, db.ForeignKey('receiver.id_'), nullable=False)
+    receiver = db.relationship("Receiver")
+    has_seen = db.Column(db.Boolean, nullable=False, default=False)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id_'), nullable=False)
+    company = db.relationship("Company")
+    order_id = db.Column(db.String(36), nullable=False)
+    password = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+
+    def __init__(self, creator, receiver, company_id, order_id, password=None):
+        self.creator = creator
+        self.receiver = receiver
+        # self.internal_uuid = str(uuid.uuid4())
+        # self.external_uuid = str(uuid.uuid4())
+        self.company_id = company_id
+        self.order_id = order_id
+        if password == None:
+            password = None
+        else:
+            bcrypt = Bcrypt()
+            self.password = bcrypt.generate_password_hash(
+                password, current_app.config.get('BCRYPT_LOG_ROUNDS')
+            ).decode()
+
+    def as_dict(self):
+        return {
+            'id': self.id_,
+            'internal_uuid': self.internal_uuid,
+            'external_uuid': self.external_uuid,
+            'receiver': self.receiver.as_dict(),
+            'has_seen': self.has_seen,
+            'order_id': self.order_id,
+            'company': self.company.as_dict(),
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+
+    def as_dict_for_company(self):
+        return {
+            'external_uuid': self.external_uuid,
+            'receiver': self.receiver.as_dict()
+        }
+
+
+
+class User(db.Model):
+    __tablename__ = 'user'
+
+    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id_'), nullable=False)
+    user_role = db.relationship("UserRole")
+    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+
+    def __init__(self, email, name, password, user_role):
+        self.email = email
+        self.name = name
+        bcrypt = Bcrypt()
+        self.password = bcrypt.generate_password_hash(
+            password, current_app.config.get('BCRYPT_LOG_ROUNDS')
+        ).decode()
+        self.user_role = user_role
+
+    def encode_auth_token(self, user_id):
+        """
+        Generates the Auth Token
+        :return: string
+        """
+        try:
+            payload = {
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1, seconds=5),
+                'iat': datetime.datetime.utcnow(),
+                'sub': user_id
+            }
+            return jwt.encode(
+                payload,
+                current_app.config.get('SECRET_KEY'),
+                algorithm='HS256'
+            )
+        except Exception as e:
+            return e
+
+    @staticmethod
+    def decode_auth_token(auth_token):
+        """
+        Decodes the auth token
+        :param auth_token:
+        :return: integer|string
+        """
+        try:
+            payload = jwt.decode(auth_token, current_app.config.get('SECRET_KEY'))
+            is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
+            if is_blacklisted_token:
+                return 'Token blacklisted. Please log in again.'
+            else:
+                return payload['sub']
+        except jwt.ExpiredSignatureError:
+            return 'Signature expired. Please log in again.'
+        except jwt.InvalidTokenError:
+            return 'Invalid token. Please log in again.'
+
+
+
 class ContactChannel(db.Model):
     __tablename__ = 'contact_channel'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    type_ = db.Column(db.String(255), nullable=False)
+    type_ = db.Column(db.String(255), unique=True, nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
@@ -118,124 +265,6 @@ class Receiver(db.Model):
             'address': self.address,
             'zipcode': self.zipcode
         }
-
-
-
-class Feeling(db.Model):
-    __tablename__ = 'feeling'
-
-    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    internal_uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
-    external_uuid = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id_'), nullable=False)
-    creator = db.relationship("User")
-    receiver_id = db.Column(db.Integer, db.ForeignKey('receiver.id_'), nullable=False)
-    receiver = db.relationship("Receiver")
-    has_seen = db.Column(db.Boolean, nullable=False, default=False)
-    company_id = db.Column(db.Integer, db.ForeignKey('company.id_'), nullable=False)
-    company = db.relationship("Company")
-    order_id = db.Column(db.String(36), nullable=False)
-    password = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
-
-
-    def __init__(self, creator, receiver, company_id, order_id, password=None):
-        self.creator = creator
-        self.receiver = receiver
-        # self.internal_uuid = str(uuid.uuid4())
-        # self.external_uuid = str(uuid.uuid4())
-        self.company_id = company_id
-        self.order_id = order_id
-        if password == None:
-            password = None
-        else:
-            print("asdasdasda")
-            bcrypt = Bcrypt()
-            self.password = bcrypt.generate_password_hash(
-                password, current_app.config.get('BCRYPT_LOG_ROUNDS')
-            ).decode()
-
-    def as_dict(self):
-        return {
-            'id': self.id_,
-            'internal_uuid': self.internal_uuid,
-            'external_uuid': self.external_uuid,
-            'receiver': self.receiver.as_dict(),
-            'has_seen': self.has_seen,
-            'order_id': self.order_id,
-            'company': self.company.as_dict(),
-            'created_at': self.created_at,
-            'updated_at': self.updated_at
-        }
-
-    def as_dict_for_company(self):
-        return {
-            'external_uuid': self.external_uuid,
-            'receiver': self.receiver.as_dict()
-        }
-
-
-
-class User(db.Model):
-    __tablename__ = 'user'
-
-    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    name = db.Column(db.String(255), nullable=False)
-    password = db.Column(db.String(255), nullable=False)
-    admin = db.Column(db.Boolean, nullable=False, default=False)
-    created_at = db.Column(db.DateTime(timezone=True), default=func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
-
-    def __init__(self, email, name, password, admin=False):
-        self.email = email
-        self.name = name
-        bcrypt = Bcrypt()
-        self.password = bcrypt.generate_password_hash(
-            password, current_app.config.get('BCRYPT_LOG_ROUNDS')
-        ).decode()
-        self.admin = admin
-
-
-    def encode_auth_token(self, user_id):
-        """
-        Generates the Auth Token
-        :return: string
-        """
-        try:
-            payload = {
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1, seconds=5),
-                'iat': datetime.datetime.utcnow(),
-                'sub': user_id
-            }
-            return jwt.encode(
-                payload,
-                current_app.config.get('SECRET_KEY'),
-                algorithm='HS256'
-            )
-        except Exception as e:
-            return e
-
-
-    @staticmethod
-    def decode_auth_token(auth_token):
-        """
-        Decodes the auth token
-        :param auth_token:
-        :return: integer|string
-        """
-        try:
-            payload = jwt.decode(auth_token, current_app.config.get('SECRET_KEY'))
-            is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
-            if is_blacklisted_token:
-                return 'Token blacklisted. Please log in again.'
-            else:
-                return payload['sub']
-        except jwt.ExpiredSignatureError:
-            return 'Signature expired. Please log in again.'
-        except jwt.InvalidTokenError:
-            return 'Invalid token. Please log in again.'
 
 
 

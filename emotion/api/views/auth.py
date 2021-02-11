@@ -1,7 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from flask_bcrypt import Bcrypt
-from emotion.models import User
+from emotion.models import User, UserRole, USER_ROLE_USER
 from emotion.api.helper.decorators import token_required
 from emotion import db
 
@@ -32,12 +32,20 @@ class AuthAPI(MethodView):
 		post_data = request.get_json()
 
 		user = User.query.filter_by(email=post_data.get('email')).first()
+		user_role = UserRole.query.filter_by(name=USER_ROLE_USER).first()
+		if user_role is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'Some error occurred. Please try again.'
+			}
+			return make_response(jsonify(responseObject)), 401
 		if not user:
 			try:
 				user = User(
 					email=post_data.get('email'),
 					name=post_data.get('name'),
-					password=post_data.get('password')
+					password=post_data.get('password'),
+					user_role=user_role
 				)
 
 				# insert the user

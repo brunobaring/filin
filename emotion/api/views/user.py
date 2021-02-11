@@ -27,7 +27,7 @@ class UserAPI(MethodView):
 				'user_id': user.id_,
 				'email': user.email,
 				'name': user.name,
-				'admin': user.admin,
+				'role': user.user_role.name.lower(),
 				'created_at': user.created_at
 			}
 		}

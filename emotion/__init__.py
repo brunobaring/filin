@@ -42,28 +42,31 @@ def create_app():
 	def load_user(user_id):
 		return User.query.get(int(user_id))
 
-	from emotion.api.feeling import feeling_blueprint
+	from emotion.api.views.feeling.feeling import feeling_blueprint
 	app.register_blueprint(feeling_blueprint)
 
-	from emotion.api.company import company_blueprint
+	from emotion.api.views.company import company_blueprint
 	app.register_blueprint(company_blueprint)
 
-	from emotion.api.contact_channel import contact_channel_blueprint
+	from emotion.api.views.contact_channel import contact_channel_blueprint
 	app.register_blueprint(contact_channel_blueprint)
 
-	from emotion.api.defaults import defaults_blueprint
+	from emotion.api.views.defaults import defaults_blueprint
 	app.register_blueprint(defaults_blueprint)
 
-	from emotion.api.user import user_blueprint
+	from emotion.api.views.user import user_blueprint
 	app.register_blueprint(user_blueprint)
 
-	from emotion.api.logout import logout_blueprint
+	from emotion.api.views.logout import logout_blueprint
 	app.register_blueprint(logout_blueprint)
 
-	from emotion.api.auth import auth_blueprint
+	from emotion.api.views.auth import auth_blueprint
 	app.register_blueprint(auth_blueprint)
 
-	from emotion.api.external import external_blueprint
+	from emotion.api.views.feeling.external.external import external_blueprint
 	app.register_blueprint(external_blueprint)
+
+	from emotion.api.views.feeling.file.file import feeling_file_blueprint
+	app.register_blueprint(feeling_file_blueprint)
 
 	return app
