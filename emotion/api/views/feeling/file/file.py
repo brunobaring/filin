@@ -1,10 +1,10 @@
 from flask import Blueprint, request, make_response, jsonify, current_app
 from flask.views import MethodView
 from emotion import db
-from emotion.models import User, Feeling, FeelingFile
+from emotion.models import User, Feeling, FeelingFile, SCOPE_CREATE_FEELING_FILE, SCOPE_DELETE_FEELING_FILE
 from werkzeug.exceptions import RequestEntityTooLarge
 from emotion.api.helper.decorators import token_required, check_file
-from emotion.api.helper.helpers import get_folder_size, save_file
+from emotion.api.helper.helpers import get_folder_size, save_file, has_permission
 import os
 import math
 
@@ -20,11 +20,14 @@ class FeelingFileAPI(MethodView):
 
 	@check_file
 	def post(self, internal_uuid):
-		auth_header = request.headers.get('Authorization')
-		auth_token = auth_header.split(" ")[1]
+		user = has_permission(request, SCOPE_CREATE_FEELING_FILE)
+		if user is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'No permission'
+			}
+			return make_response(jsonify(responseObject)), 401
 
-		resp = User.decode_auth_token(auth_token)
-		user = User.query.filter_by(id_=resp).first()
 
 		file_from_request = request.files.get('file')
 		filename = file_from_request.filename
@@ -79,6 +82,12 @@ class FeelingFileAPI(MethodView):
 
 
 	def delete(self, internal_uuid, feeling_file_uuid):
+		if has_permission(request, SCOPE_DELETE_FEELING_FILE) is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'No permission'
+			}
+			return make_response(jsonify(responseObject)), 401
 
 		feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
 		feeling_file = FeelingFile.query.filter_by(uuid=feeling_file_uuid).first()

@@ -1,7 +1,8 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
-from emotion.models import User
+from emotion.models import User, SCOPE_GET_USER
 from emotion.api.helper.decorators import token_required
+from emotion.api.helper.helpers import has_permission
 from emotion import db
 
 
@@ -15,11 +16,13 @@ class UserAPI(MethodView):
 	decorators = [token_required]
 
 	def get(self):
-		auth_header = request.headers.get('Authorization')
-		auth_token = auth_header.split(" ")[1]
-
-		resp = User.decode_auth_token(auth_token)
-		user = User.query.filter_by(id_=resp).first()
+		user = has_permission(request, SCOPE_GET_USER)
+		if user is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'No permission'
+			}
+			return make_response(jsonify(responseObject)), 401
 
 		responseObject = {
 			'status': 'success',

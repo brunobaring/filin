@@ -1,8 +1,9 @@
 from flask import Blueprint, request, make_response, jsonify, current_app, send_file
 from flask.views import MethodView
 from flask_bcrypt import Bcrypt
-from emotion.models import Feeling, FeelingFile
+from emotion.models import Feeling, FeelingFile, SCOPE_GET_FEELING_BY_EXTERNAL_UUID
 from emotion.api.helper.decorators import token_required
+from emotion.api.helper.helpers import save_file, is_valid_uuid, has_permission
 from emotion import db
 import os, pathlib, io, zipfile
 
@@ -15,6 +16,12 @@ external_blueprint = Blueprint('external', __name__)
 class ExternalAPI(MethodView):
 
 	def post(self):
+		if has_permission(request, SCOPE_GET_FEELING_BY_EXTERNAL_UUID) is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'No permission'
+			}
+			return make_response(jsonify(responseObject)), 401
 
 		if 'external_uuid' not in request.form:
 			responseObject = {
@@ -70,6 +77,12 @@ class ExternalAPI(MethodView):
 
 
 	def get(self):
+		if has_permission(request, SCOPE_GET_FEELING_BY_EXTERNAL_UUID) is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'No permission'
+			}
+			return make_response(jsonify(responseObject)), 401
 
 		if 'external_uuid' not in request.form:
 			responseObject = {

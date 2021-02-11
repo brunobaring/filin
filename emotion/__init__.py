@@ -42,8 +42,8 @@ def create_app():
 	def load_user(user_id):
 		return User.query.get(int(user_id))
 
-	from emotion.api.views.feeling.feeling import feeling_blueprint
-	app.register_blueprint(feeling_blueprint)
+	from emotion.api.views.feeling.internal.internal import feeling_internal_blueprint
+	app.register_blueprint(feeling_internal_blueprint)
 
 	from emotion.api.views.company import company_blueprint
 	app.register_blueprint(company_blueprint)
@@ -68,5 +68,8 @@ def create_app():
 
 	from emotion.api.views.feeling.file.file import feeling_file_blueprint
 	app.register_blueprint(feeling_file_blueprint)
+
+	from emotion.api.views.feeling.order.order import feeling_order_blueprint
+	app.register_blueprint(feeling_order_blueprint)
 
 	return app

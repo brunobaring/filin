@@ -1,6 +1,7 @@
-from flask import Blueprint, make_response, jsonify
+from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
-from emotion.models import Company
+from emotion.models import Company, SCOPE_GET_COMPANY_BY_ID, SCOPE_GET_ALL_COMPANIES
+from emotion.api.helper.helpers import has_permission
 
 
 
@@ -12,6 +13,13 @@ class CompanyAPI(MethodView):
 
 	def get(self, company_id):
 		if company_id is None:
+			if has_permission(request, SCOPE_GET_ALL_COMPANIES) is None:
+				responseObject = {
+					'status': 'fail',
+					'message': 'No permission'
+				}
+				return make_response(jsonify(responseObject)), 401
+
 			companies = Company.query.all()
 
 			companiesObject = []
@@ -28,15 +36,21 @@ class CompanyAPI(MethodView):
 			return make_response(jsonify(responseObject)), 200
 
 		else:
+			if has_permission(request, SCOPE_GET_COMPANY_BY_ID) is None:
+				responseObject = {
+					'status': 'fail',
+					'message': 'No permission'
+				}
+				return make_response(jsonify(responseObject)), 401
+
 			company = Company.query.filter_by(id_=company_id).first()
-			print(company)
+
 			responseObject = {
 				'status': 'success',
 				'data': {
 					'company': company.as_dict()
 				}
 			}
-
 			return make_response(jsonify(responseObject)), 200
 
 

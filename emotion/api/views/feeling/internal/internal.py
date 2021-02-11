@@ -1,52 +1,49 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from emotion import db
-from emotion.models import User, Feeling, Receiver, FeelingFile, SCOPE_CREATE_FEELING
+from emotion.models import User, Feeling, Receiver, FeelingFile, SCOPE_GET_FEELING_BY_INTERNAL_UUID, SCOPE_CREATE_FEELING
 from emotion.api.helper.decorators import token_required, check_file
 from emotion.api.helper.helpers import save_file, is_valid_uuid, has_permission
 
 
 
-feeling_blueprint = Blueprint('feeling', __name__)
+feeling_internal_blueprint = Blueprint('feeling_internal', __name__)
 
 
 
-class FeelingAPI(MethodView):
+class FeelingInternalAPI(MethodView):
 
 	decorators = [token_required]
 
-	def get(self):
-		if 'order_id' not in request.args and 'internal_uuid' not in request.args:
+	def get(self, internal_uuid):
+		if has_permission(request, SCOPE_GET_FEELING_BY_INTERNAL_UUID) is None:
 			responseObject = {
 				'status': 'fail',
-				'message': 'Missing params order_id or internal_uuid'
+				'message': 'No permission'
 			}
 			return make_response(jsonify(responseObject)), 401
 
-		order_id = request.args.get('order_id')
-		internal_uuid = request.args.get('internal_uuid')
+		if internal_uuid is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'Missing internal_uuid'
+			}
+			return make_response(jsonify(responseObject)), 401
 
-
-		if order_id is not None:
-			feeling = Feeling.query.filter_by(order_id=order_id).first()
-		if internal_uuid is not None:
-			if is_valid_uuid(str(internal_uuid)):
-				feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
-			else:
-				responseObject = {
-					'status': 'fail',
-					'message': 'Invalid UUID format.'
-				}
-				return make_response(jsonify(responseObject)), 401
-
+		if is_valid_uuid(str(internal_uuid)):
+			feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
+		else:
+			responseObject = {
+				'status': 'fail',
+				'message': 'Invalid UUID format.'
+			}
+			return make_response(jsonify(responseObject)), 401
 
 		if feeling is None:
-
 			responseObject = {
 				'status': 'fail',
 				'message': 'Feeling not found.'
 			}
-
 			return make_response(jsonify(responseObject)), 200
 
 		responseObject = {
@@ -55,19 +52,20 @@ class FeelingAPI(MethodView):
 				'feeling': feeling.as_dict_for_company()
 			}
 		}
-
 		return make_response(jsonify(responseObject)), 200
 
 
 
 	@check_file
 	def post(self):
-		# auth_header = request.headers.get('Authorization')
-		# auth_token = auth_header.split(" ")[1]
-		# resp = User.decode_auth_token(auth_token)
-		# user = User.query.filter_by(id_=resp).first()
-
 		user = has_permission(request, SCOPE_CREATE_FEELING)
+		if user is None:
+			responseObject = {
+				'status': 'fail',
+				'message': 'No permission'
+			}
+			return make_response(jsonify(responseObject)), 401
+
 
 		files_list = request.files.getlist('file[]')
 
@@ -121,9 +119,9 @@ class FeelingAPI(MethodView):
 
 
 
-feeling_view = FeelingAPI.as_view('feeling_api')
+feeling_internal_view = FeelingInternalAPI.as_view('feeling_internal_api')
 
 
 
-feeling_blueprint.add_url_rule('/feeling', view_func=feeling_view, methods=['POST'])
-feeling_blueprint.add_url_rule('/feeling', view_func=feeling_view, methods=['GET'])
+feeling_internal_blueprint.add_url_rule('/feeling/internal', view_func=feeling_internal_view, methods=['POST'])
+feeling_internal_blueprint.add_url_rule('/feeling/internal/<string:internal_uuid>', view_func=feeling_internal_view, methods=['GET'])

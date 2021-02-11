@@ -1,7 +1,8 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
-from emotion.models import ContactChannel
+from emotion.models import ContactChannel, SCOPE_GET_CONTACT_CHANNELS
 from emotion.api.helper.decorators import token_required
+from emotion.api.helper.helpers import has_permission
 from emotion import db
 
 
@@ -15,29 +16,24 @@ class ContactChannelAPI(MethodView):
 	decorators = [token_required]
 
 	def get(self):
-		auth_header = request.headers.get('Authorization')
-		if auth_header:
-			try:
-				auth_token = auth_header.split(" ")[1]
-				print(auth_token)
-			except IndexError:
-				responseObject = {
-					'status': 'fail',
-					'message': 'Bearer token malformed.'
-				}
-				return make_response(jsonify(responseObject)), 401
-		else:
+		if has_permission(request, SCOPE_GET_CONTACT_CHANNELS) is None:
 			responseObject = {
 				'status': 'fail',
-				'message': 'Provide a valid auth token.'
+				'message': 'No permission'
 			}
 			return make_response(jsonify(responseObject)), 401
 
-		arr = []
-		for id_ in db.session.query(ContactChannel).all():
-			arr.append(id_.as_dict())
+		contact_channels = []
+		for contact_channel in db.session.query(ContactChannel).all():
+			contact_channels.append(contact_channel.as_dict())
 
-		return make_response(jsonify(arr)), 200
+		responseObject = {
+			'status': 'success',
+			'data': {
+				'contact_channels': contact_channels
+			}
+		}
+		return make_response(jsonify(responseObject)), 200
 
 
 

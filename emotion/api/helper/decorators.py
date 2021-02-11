@@ -33,16 +33,16 @@ def token_required(view_method):
 			}
 			return make_response(jsonify(responseObject)), 401
 
-		resp = User.decode_auth_token(auth_token)
+		user_id = User.decode_auth_token(auth_token)
 
-		if isinstance(resp, str):
+		if isinstance(user_id, str):
 			responseObject = {
 				'status': 'fail',
-				'message': resp
+				'message': user_id
 			}
 			return make_response(jsonify(responseObject)), 401			
 
-		user = User.query.filter_by(id_=resp).first()
+		user = User.query.filter_by(id_=user_id).first()
 		if not user:
 			responseObject = {
 				'status': 'fail',

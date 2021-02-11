@@ -47,8 +47,6 @@ def has_permission(request, scope_name):
 
 	# user_role_scope = db.session.query(UserRoleScope).filter(Scope.id_.like(int(scope.id_), UserRole.id_.like(int(user.user_role.id_))))
 	user_role_scope = UserRoleScope.query.filter_by(scope=scope).filter_by(user_role=user.user_role).first()
-	print("AAAAAAAAAAAAAAAAAAAAAAA")
-	print(user_role_scope, "NAO CREEEIO")
 	return user
 
 
