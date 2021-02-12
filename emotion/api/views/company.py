@@ -2,6 +2,7 @@ from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from emotion.models import Company, SCOPE_GET_COMPANY_BY_ID, SCOPE_GET_ALL_COMPANIES
 from emotion.api.helper.helpers import has_permission
+from emotion.api.views.http_error import HTTPError
 
 
 
@@ -14,11 +15,7 @@ class CompanyAPI(MethodView):
 	def get(self, company_id):
 		if company_id is None:
 			if has_permission(request, SCOPE_GET_ALL_COMPANIES) is None:
-				responseObject = {
-					'status': 'fail',
-					'message': 'No permission'
-				}
-				return make_response(jsonify(responseObject)), 401
+				return HTTPError(403, 'Access denied.').to_dict()
 
 			companies = Company.query.all()
 
@@ -27,31 +24,20 @@ class CompanyAPI(MethodView):
 				companiesObject.append(company.as_dict())
 
 			responseObject = {
-				'status': 'success',
-				'data': {
-					'companies': companiesObject
-				}
+				'companies': companiesObject
 			}
-
-			return make_response(jsonify(responseObject)), 200
+			return HTTPError(200).to_dict(responseObject)
 
 		else:
 			if has_permission(request, SCOPE_GET_COMPANY_BY_ID) is None:
-				responseObject = {
-					'status': 'fail',
-					'message': 'No permission'
-				}
-				return make_response(jsonify(responseObject)), 401
+				return HTTPError(403, 'Access denied.').to_dict()
 
 			company = Company.query.filter_by(id_=company_id).first()
 
 			responseObject = {
-				'status': 'success',
-				'data': {
-					'company': company.as_dict()
-				}
+				'company': company.as_dict()
 			}
-			return make_response(jsonify(responseObject)), 200
+			return HTTPError(200).to_dict(responseObject)
 
 
 

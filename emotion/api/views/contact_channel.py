@@ -3,6 +3,7 @@ from flask.views import MethodView
 from emotion.models import ContactChannel, SCOPE_GET_CONTACT_CHANNELS
 from emotion.api.helper.decorators import token_required
 from emotion.api.helper.helpers import has_permission
+from emotion.api.views.http_error import HTTPError
 from emotion import db
 
 

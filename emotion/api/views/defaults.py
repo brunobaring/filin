@@ -2,6 +2,7 @@ from flask import Blueprint, request, make_response, jsonify, current_app
 from flask.views import MethodView
 from emotion import db
 from emotion.models import Scope, UserRole, UserRoleScope, Company, FeelingFile, Feeling, User, ContactChannel, Receiver, BlacklistToken, SCOPE_GET_FEELING_BY_ORDER_ID, SCOPE_GET_FEELING_BY_INTERNAL_UUID, SCOPE_GET_FEELING_BY_EXTERNAL_UUID, SCOPE_GET_ALL_COMPANIES, SCOPE_GET_COMPANY_BY_ID, SCOPE_GET_CONTACT_CHANNELS, SCOPE_CREATE_FEELING, SCOPE_DELETE_FEELING_FILE, SCOPE_CREATE_FEELING_FILE, SCOPE_GET_USER, USER_ROLE_ADMIN, USER_ROLE_USER, USER_ROLE_COMPANY
+from emotion.api.views.http_error import HTTPError
 
 
 
@@ -97,11 +98,7 @@ class DefaultsAPI(MethodView):
 
 		db.session.commit()
 
-		responseObject = {
-			'status': 'success',
-			'message': 'Defaults created'
-		}
-		return make_response(jsonify(responseObject)), 201
+		return HTTPError(201).to_dict()
 
 
 

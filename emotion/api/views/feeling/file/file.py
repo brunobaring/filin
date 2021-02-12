@@ -5,6 +5,7 @@ from emotion.models import User, Feeling, FeelingFile, SCOPE_CREATE_FEELING_FILE
 from werkzeug.exceptions import RequestEntityTooLarge
 from emotion.api.helper.decorators import token_required, check_file
 from emotion.api.helper.helpers import get_folder_size, save_file, has_permission
+from emotion.api.views.http_error import HTTPError
 import os
 import math
 
@@ -22,12 +23,7 @@ class FeelingFileAPI(MethodView):
 	def post(self, internal_uuid):
 		user = has_permission(request, SCOPE_CREATE_FEELING_FILE)
 		if user is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
-
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		file_from_request = request.files.get('file')
 		filename = file_from_request.filename
@@ -35,22 +31,10 @@ class FeelingFileAPI(MethodView):
 		feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
 
 		if get_folder_size(feeling.internal_uuid) + int(request.headers.get('Content-Length')) > current_app.config['MAX_CONTENT_LENGTH']:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Cannot exceed ' + str(math.floor(current_app.config['MAX_CONTENT_LENGTH'] / 1000000)) + 'MB in total.'
-			}
-
-			return make_response(jsonify(responseObject)), 400
-
+			return HTTPError(400, 'Cannot exceed ' + str(math.floor(current_app.config['MAX_CONTENT_LENGTH'] / 1000000)) + 'MB in total.').to_dict()
 
 		if feeling.creator_id != user.id_:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Not allowed to edit other feelings'
-			}
-
-			return make_response(jsonify(responseObject)), 400
-
+			return HTTPError(403, 'Access denied. Not allowed to edit other feelings.').to_dict()
 
 		feeling_file = FeelingFile(feeling, filename)
 
@@ -71,23 +55,16 @@ class FeelingFileAPI(MethodView):
 		feeling_dict['files'] = feeling_file_dicts
 
 		responseObject = {
-			'status': 'success',
-			'data': {
-				'feeling': feeling_dict
-			}
+			'feeling': feeling_dict
 		}
 
-		return make_response(jsonify(responseObject)), 200
+		return HTTPError(200).to_dict(responseObject)
 
 
 
 	def delete(self, internal_uuid, feeling_file_uuid):
 		if has_permission(request, SCOPE_DELETE_FEELING_FILE) is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
 		feeling_file = FeelingFile.query.filter_by(uuid=feeling_file_uuid).first()
@@ -101,12 +78,7 @@ class FeelingFileAPI(MethodView):
 			return make_response(jsonify(responseObject)), 400
 
 		if feeling_file is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Feeling File not found.'
-			}
-
-			return make_response(jsonify(responseObject)), 400
+			return HTTPError(400, 'Feeling File not found.').to_dict()
 
 		os.remove(current_app.config['UPLOAD_PATH'] + '/' + str(feeling.id_) + '/' + str(feeling_file.uuid))
 
@@ -122,13 +94,9 @@ class FeelingFileAPI(MethodView):
 		feeling_dict['files'] = feeling_file_dicts
 
 		responseObject = {
-			'status': 'success',
-			'data': {
-				'feeling': feeling_dict
-			}
+			'feeling': feeling_dict
 		}
-
-		return make_response(jsonify(responseObject)), 200
+		return HTTPError(200).to_dict(responseObject)
 
 
 

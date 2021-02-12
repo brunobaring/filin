@@ -2,6 +2,7 @@ from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from emotion.models import BlacklistToken
 from emotion.api.helper.decorators import token_required
+from emotion.api.views.http_error import HTTPError
 from emotion import db
 
 
@@ -19,21 +20,9 @@ class LogoutAPI(MethodView):
 		auth_token = auth_header.split(" ")[1]
 
 		blacklist_token = BlacklistToken(token=auth_token)
-		try:
-			# insert the token
-			db.session.add(blacklist_token)
-			db.session.commit()
-			responseObject = {
-				'status': 'success',
-				'message': 'Successfully logged out.'
-			}
-			return make_response(jsonify(responseObject)), 200
-		except Exception as e:
-			responseObject = {
-				'status': 'fail',
-				'message': e
-			}
-			return make_response(jsonify(responseObject)), 200
+		db.session.add(blacklist_token)
+		db.session.commit()
+		return HTTPError(200).to_dict()
 
 
 

@@ -3,6 +3,7 @@ from flask.views import MethodView
 from emotion.models import User, SCOPE_GET_USER
 from emotion.api.helper.decorators import token_required
 from emotion.api.helper.helpers import has_permission
+from emotion.api.views.http_error import HTTPError
 from emotion import db
 
 
@@ -18,23 +19,16 @@ class UserAPI(MethodView):
 	def get(self):
 		user = has_permission(request, SCOPE_GET_USER)
 		if user is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		responseObject = {
-			'status': 'success',
-			'data': {
-				'user_id': user.id_,
-				'email': user.email,
-				'name': user.name,
-				'role': user.user_role.name.lower(),
-				'created_at': user.created_at
-			}
+			'user_id': user.id_,
+			'email': user.email,
+			'name': user.name,
+			'role': user.user_role.name.lower(),
+			'created_at': user.created_at
 		}
-		return make_response(jsonify(responseObject)), 200
+		return HTTPError(200).to_dict(responseObject)
 
 
 

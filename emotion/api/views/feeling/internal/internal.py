@@ -4,6 +4,7 @@ from emotion import db
 from emotion.models import User, Feeling, Receiver, FeelingFile, SCOPE_GET_FEELING_BY_INTERNAL_UUID, SCOPE_CREATE_FEELING
 from emotion.api.helper.decorators import token_required, check_file
 from emotion.api.helper.helpers import save_file, is_valid_uuid, has_permission
+from emotion.api.views.http_error import HTTPError
 
 
 
@@ -17,64 +18,35 @@ class FeelingInternalAPI(MethodView):
 
 	def get(self, internal_uuid):
 		if has_permission(request, SCOPE_GET_FEELING_BY_INTERNAL_UUID) is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		if internal_uuid is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Missing internal_uuid'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(400, 'Missing /:internal_uuid').to_dict()
 
 		if is_valid_uuid(str(internal_uuid)):
 			feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
 		else:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Invalid UUID format.'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(400, 'Invalid UUID format.').to_dict()
 
 		if feeling is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Feeling not found.'
-			}
-			return make_response(jsonify(responseObject)), 200
+			return HTTPError(400, 'Feeling not found').to_dict()
 
 		responseObject = {
-			'status': 'success',
-			'data': {
-				'feeling': feeling.as_dict_for_company()
-			}
+			'feeling': feeling.as_dict_for_company()
 		}
-		return make_response(jsonify(responseObject)), 200
-
+		return HTTPError(200).to_dict(responseObject)
 
 
 	@check_file
 	def post(self):
 		user = has_permission(request, SCOPE_CREATE_FEELING)
 		if user is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
-
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		files_list = request.files.getlist('file[]')
 
 		if len(files_list) > 3:
-			responseObject = {
-				'status': 'fail',
-				'message': 'More than 3 files received.'
-			}
-			return make_response(jsonify(responseObject)), 400			
+			return HTTPError(400, 'More than 3 files received.').to_dict()
 
 		contact_channel_id = request.form.get('contact_channel_id')
 		contact_channel_description = request.form.get('contact_channel_description')
@@ -83,6 +55,9 @@ class FeelingInternalAPI(MethodView):
 		company_id = request.form.get('company_id')
 		order_id = request.form.get('order_id')
 		password = request.form.get('password')
+		if contact_channel_id is None or contact_channel_description is None or address is None or zipcode is None or company_id is None or order_id is None or password is None:
+			return HTTPError(400, 'Expected params ["contact_channel_id", "contact_channel_description", "address", "zipcode", "company_id", "order_id", "password"]').to_dict()
+
 		receiver = Receiver(contact_channel_id, contact_channel_description, address, zipcode)
 		feeling = Feeling(user, receiver, company_id, order_id, password)
 
@@ -109,13 +84,9 @@ class FeelingInternalAPI(MethodView):
 		feeling_dict['files'] = feeling_file_dicts
 
 		responseObject = {
-			'status': 'success',
-			'data': {
-				'feeling': feeling_dict
-			}
+			'feeling': feeling_dict
 		}
-
-		return make_response(jsonify(responseObject)), 200
+		return HTTPError(200).to_dict(responseObject)
 
 
 

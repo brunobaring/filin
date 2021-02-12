@@ -4,6 +4,7 @@ from flask_bcrypt import Bcrypt
 from emotion.models import Feeling, FeelingFile, SCOPE_GET_FEELING_BY_EXTERNAL_UUID
 from emotion.api.helper.decorators import token_required
 from emotion.api.helper.helpers import save_file, is_valid_uuid, has_permission
+from emotion.api.views.http_error import HTTPError
 from emotion import db
 import os, pathlib, io, zipfile
 
@@ -17,45 +18,25 @@ class ExternalAPI(MethodView):
 
 	def post(self):
 		if has_permission(request, SCOPE_GET_FEELING_BY_EXTERNAL_UUID) is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		if 'external_uuid' not in request.form:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Missing params.'
-			}
-			return make_response(jsonify(responseObject)), 400
+			return HTTPError(400, 'Expected params ["external_uuid"]').to_dict()
 
 		external_uuid = request.form.get('external_uuid')
 		feeling = Feeling.query.filter_by(external_uuid=external_uuid).first()
 
 		if feeling is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Feeling not found.'
-			}
-			return make_response(jsonify(responseObject)), 404
+			return HTTPError(400, 'Feeling not found.').to_dict()
 
 		if feeling.password is not None:
 			if 'password' not in request.form:
-				responseObject = {
-					'status': 'fail',
-					'message': 'Missing params.'
-				}
-				return make_response(jsonify(responseObject)), 404
+				return HTTPError(400, 'Expected params ["password"]').to_dict()
 
 			password = request.form.get('password')
 			bcrypt = Bcrypt()
 			if not bcrypt.check_password_hash(feeling.password, password):
-				responseObject = {
-					'status': 'fail',
-					'message': 'Wrong password.'
-				}
-				return make_response(jsonify(responseObject)), 404
+				return HTTPError(401, 'Invalid credentials').to_dict()
 
 		folder = os.path.abspath(current_app.config['UPLOAD_PATH'] + "/" + str(feeling.id_))
 		base_path = pathlib.Path(folder)
@@ -78,46 +59,25 @@ class ExternalAPI(MethodView):
 
 	def get(self):
 		if has_permission(request, SCOPE_GET_FEELING_BY_EXTERNAL_UUID) is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(403, 'Access denied.').to_dict()
 
 		if 'external_uuid' not in request.form:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Missing params.'
-			}
-			return make_response(jsonify(responseObject)), 400
+			return HTTPError(400, 'Expected params ["external_uuid"]').to_dict()
 
 		external_uuid = request.form.get('external_uuid')
 		feeling = Feeling.query.filter_by(external_uuid=external_uuid).first()
 
 		if feeling is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Feeling not found.'
-			}
-			return make_response(jsonify(responseObject)), 404
-
+			return HTTPError(400, 'Feeling not found.').to_dict()
 
 		if feeling.password is not None:
 			if 'password' not in request.form:
-				responseObject = {
-					'status': 'fail',
-					'message': 'Missing params.'
-				}
-				return make_response(jsonify(responseObject)), 404
+				return HTTPError(400, 'Expected params ["password"]').to_dict()
 
 			password = request.form.get('password')
 			bcrypt = Bcrypt()
 			if not bcrypt.check_password_hash(feeling.password, password):
-				responseObject = {
-					'status': 'fail',
-					'message': 'Wrong password.'
-				}
-				return make_response(jsonify(responseObject)), 404
+				return HTTPError(401, 'Invalid credentials').to_dict()
 
 		feeling_files = FeelingFile.query.filter_by(feeling_id=feeling.internal_uuid).all()
 		feeling_file_dicts = []
@@ -128,13 +88,9 @@ class ExternalAPI(MethodView):
 		feeling_dict['files'] = feeling_file_dicts
 
 		responseObject = {
-			'status': 'success',
-			'data': {
-				'feeling': feeling_dict
-			}
+			'feeling': feeling_dict
 		}
-
-		return make_response(jsonify(responseObject)), 200
+		return HTTPError(200).to_dict(responseObject)
 
 
 
