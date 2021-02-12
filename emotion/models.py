@@ -168,7 +168,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id_'), nullable=False)
+    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id_'))
     user_role = db.relationship("UserRole")
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
