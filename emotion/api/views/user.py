@@ -25,7 +25,7 @@ class UserAPI(MethodView):
 			'user_id': user.id_,
 			'email': user.email,
 			'name': user.name,
-			'role': user.user_role.name.lower(),
+			'role': user.role.name.lower(),
 			'created_at': user.created_at
 		}
 		return HTTPError(200).to_dict(responseObject)

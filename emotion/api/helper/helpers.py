@@ -1,7 +1,7 @@
 from flask import current_app, request
 from uuid import UUID
 from emotion import db
-from emotion.models import User, Scope, UserRole, UserRoleScope
+from emotion.models import User, Scope, Role, RoleScope
 import os
 
 
@@ -45,8 +45,7 @@ def has_permission(request, scope_name):
 
 	scope = Scope.query.filter_by(name=scope_name).first()
 
-	# user_role_scope = db.session.query(UserRoleScope).filter(Scope.id_.like(int(scope.id_), UserRole.id_.like(int(user.user_role.id_))))
-	user_role_scope = UserRoleScope.query.filter_by(scope=scope).filter_by(user_role=user.user_role).first()
+	role_scope = RoleScope.query.filter_by(scope=scope).filter_by(role=user.role).first()
 	return user
 
 

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from flask_bcrypt import Bcrypt
-from emotion.models import User, UserRole, USER_ROLE_ADMIN
+from emotion.models import User, Role, ROLE_ADMIN
 from emotion.api.helper.decorators import token_required
 from emotion.api.views.http_error import HTTPError
 from emotion import db
@@ -30,8 +30,8 @@ class AuthAPI(MethodView):
 		post_data = request.get_json()
 
 		user = User.query.filter_by(email=post_data.get('email')).first()
-		user_role = UserRole.query.filter_by(name=USER_ROLE_ADMIN).first()
-		if user_role is None:
+		role = Role.query.filter_by(name=ROLE_ADMIN).first()
+		if role is None:
 			return HTTPError(400, 'No role detected. Contact admin').to_dict()
 
 		if user:
@@ -49,7 +49,7 @@ class AuthAPI(MethodView):
 			email=email,
 			name=name,
 			password=password,
-			user_role=user_role
+			role=role
 		)
 
 		db.session.add(user)

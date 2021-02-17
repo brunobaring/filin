@@ -33,11 +33,11 @@ class Scope(db.Model):
 
 
 
-USER_ROLE_ADMIN = 'ADMIN'
-USER_ROLE_USER = 'USER'
-USER_ROLE_COMPANY = 'COMPANY'
-class UserRole(db.Model):
-    __tablename__ = 'user_role'
+ROLE_ADMIN = 'ADMIN'
+ROLE_USER = 'USER'
+ROLE_COMPANY = 'COMPANY'
+class Role(db.Model):
+    __tablename__ = 'role'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
@@ -49,17 +49,17 @@ class UserRole(db.Model):
 
 
 
-class UserRoleScope(db.Model):
-    __tablename__ = 'user_role_scope'
+class RoleScope(db.Model):
+    __tablename__ = 'role_scope'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id_'), nullable=False)
-    user_role = db.relationship("UserRole")
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id_'), nullable=False)
+    role = db.relationship("Role")
     scope_id = db.Column(db.Integer, db.ForeignKey('scope.id_'), nullable=False)
     scope = db.relationship("Scope")
 
-    def __init__(self, user_role, scope):
-        self.user_role = user_role
+    def __init__(self, role, scope):
+        self.role = role
         self.scope = scope
 
 
@@ -168,19 +168,19 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    user_role_id = db.Column(db.Integer, db.ForeignKey('user_role.id_'))
-    user_role = db.relationship("UserRole")
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id_'))
+    role = db.relationship("Role")
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
-    def __init__(self, email, name, password, user_role):
+    def __init__(self, email, name, password, role):
         self.email = email
         self.name = name
         bcrypt = Bcrypt()
         self.password = bcrypt.generate_password_hash(
             password, current_app.config.get('BCRYPT_LOG_ROUNDS')
         ).decode()
-        self.user_role = user_role
+        self.role = role
 
     def encode_auth_token(self, user_id):
         """
