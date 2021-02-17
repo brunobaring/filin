@@ -14,8 +14,8 @@ class DefaultsAPI(MethodView):
 
 	def post(self):
 
-		db.drop_all()
-		# db.create_all()
+		# db.drop_all()
+		db.create_all()
 
 		db.session.query(RoleScope).delete()
 		db.session.query(Scope).delete()
