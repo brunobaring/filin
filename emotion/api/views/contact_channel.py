@@ -1,8 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from emotion.models import ContactChannel, SCOPE_GET_CONTACT_CHANNELS
-from emotion.api.helper.decorators import token_required
-from emotion.api.helper.helpers import has_permission
+from emotion.api.helper.decorators import user_restricted
 from emotion.api.views.http_error import HTTPError
 from emotion import db
 
@@ -14,16 +13,8 @@ contact_channel_blueprint = Blueprint('contact_channel', __name__)
 
 class ContactChannelAPI(MethodView):
 
-	decorators = [token_required]
-
+	@user_restricted([SCOPE_GET_CONTACT_CHANNELS])
 	def get(self):
-		if has_permission(request, SCOPE_GET_CONTACT_CHANNELS) is None:
-			responseObject = {
-				'status': 'fail',
-				'message': 'No permission'
-			}
-			return make_response(jsonify(responseObject)), 401
-
 		contact_channels = []
 		for contact_channel in db.session.query(ContactChannel).all():
 			contact_channels.append(contact_channel.as_dict())

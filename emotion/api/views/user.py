@@ -1,8 +1,7 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from emotion.models import User, SCOPE_GET_USER
-from emotion.api.helper.decorators import token_required
-from emotion.api.helper.helpers import has_permission
+from emotion.api.helper.decorators import user_restricted
 from emotion.api.views.http_error import HTTPError
 from emotion import db
 
@@ -14,19 +13,14 @@ user_blueprint = Blueprint('user', __name__)
 
 class UserAPI(MethodView):
 
-	decorators = [token_required]
-
+	@user_restricted([SCOPE_GET_USER])
 	def get(self):
-		user = has_permission(request, SCOPE_GET_USER)
-		if user is None:
-			return HTTPError(403, 'Access denied.').to_dict()
-
+		auth_token = request.headers.get('Authorization').split(" ")[1]
+		user_id = User.decode_auth_token(auth_token)
+		user = User.query.filter_by(id_=user_id).first()
+		
 		responseObject = {
-			'user_id': user.id_,
-			'email': user.email,
-			'name': user.name,
-			'role': user.role.name.lower(),
-			'created_at': user.created_at
+			'user': user.as_dict()
 		}
 		return HTTPError(200).to_dict(responseObject)
 

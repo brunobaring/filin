@@ -1,7 +1,8 @@
 from flask import current_app, request
 from uuid import UUID
 from emotion import db
-from emotion.models import User, Scope, Role, RoleScope
+from emotion.models import User, Scope, Role, RoleScope, Company, UserCompany
+from emotion.api.views.http_error import HTTPError
 import os
 
 
@@ -37,17 +38,39 @@ def save_file(feeling, file, feeling_file):
 
 
 
-def has_permission(request, scope_name):
-	auth_header = request.headers.get('Authorization')
-	auth_token = auth_header.split(" ")[1]
-	resp = User.decode_auth_token(auth_token)
-	user = User.query.filter_by(id_=resp).first()
+def has_apikey(request):
+	auth_key_header = request.headers.get('Authorization-Key')
+	if auth_key_header is None:
+		return HTTPError(401, 'Missing Authorization-Key header').to_dict()
+	auth_key_header = auth_key_header.split(" ")
+	if len(auth_key_header) <= 1 or auth_key_header[0] != 'Key' or auth_key_header[1] is None:
+		return HTTPError(401, 'Key header malformed').to_dict()
 
-	scope = Scope.query.filter_by(name=scope_name).first()
+	auth_key_token = auth_key_header[1]
+	company = Company.query.filter_by(apikey=auth_key_token).first()
+	if company is None:
+		return HTTPError(403, 'Access denied.').to_dict()
 
-	role_scope = RoleScope.query.filter_by(scope=scope).filter_by(role=user.role).first()
-	return user
+	return company
 
+def check_apikey(request, user):
+	auth_key_header = request.headers.get('Authorization-Key')
+	if auth_key_header is None:
+		return HTTPError(401, 'Missing Authorization-Key header').to_dict()
+	auth_key_header = auth_key_header.split(" ")
+	if len(auth_key_header) <= 1 or auth_key_header[0] != 'Key' or auth_key_header[1] is None:
+		return HTTPError(401, 'Key header malformed').to_dict()
+
+	auth_key_token = auth_key_header[1]
+	company = Company.query.filter_by(apikey=auth_key_token)
+	if company is None:
+		return HTTPError(403, 'Access denied.').to_dict()
+
+	user_company = UserCompany.query.filter_by(company_id=company.id_).filter_by(user_id=user.id_).first()
+	if user_company is None:
+		return HTTPError(403, 'Access denied. Can\'t access other companies').to_dict()
+
+	return company
 
 
 

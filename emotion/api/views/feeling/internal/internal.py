@@ -2,8 +2,8 @@ from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from emotion import db
 from emotion.models import User, Feeling, Receiver, FeelingFile, SCOPE_GET_FEELING_BY_INTERNAL_UUID, SCOPE_CREATE_FEELING
-from emotion.api.helper.decorators import token_required, check_file
-from emotion.api.helper.helpers import save_file, is_valid_uuid, has_permission
+from emotion.api.helper.decorators import user_restricted, check_file
+from emotion.api.helper.helpers import save_file, is_valid_uuid
 from emotion.api.views.http_error import HTTPError
 
 
@@ -14,12 +14,8 @@ feeling_internal_blueprint = Blueprint('feeling_internal', __name__)
 
 class FeelingInternalAPI(MethodView):
 
-	decorators = [token_required]
-
+	@user_restricted([SCOPE_GET_FEELING_BY_INTERNAL_UUID])
 	def get(self, internal_uuid):
-		if has_permission(request, SCOPE_GET_FEELING_BY_INTERNAL_UUID) is None:
-			return HTTPError(403, 'Access denied.').to_dict()
-
 		if internal_uuid is None:
 			return HTTPError(400, 'Missing /:internal_uuid').to_dict()
 
@@ -37,11 +33,13 @@ class FeelingInternalAPI(MethodView):
 		return HTTPError(200).to_dict(responseObject)
 
 
+
+	@user_restricted([SCOPE_CREATE_FEELING])
 	@check_file
 	def post(self):
-		user = has_permission(request, SCOPE_CREATE_FEELING)
-		if user is None:
-			return HTTPError(403, 'Access denied.').to_dict()
+		auth_token = request.headers.get('Authorization').split(" ")[1]
+		user_id = User.decode_auth_token(auth_token)
+		user = User.query.filter_by(id_=user_id).first()
 
 		files_list = request.files.getlist('file[]')
 

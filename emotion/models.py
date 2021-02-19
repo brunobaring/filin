@@ -14,6 +14,7 @@ SCOPE_GET_FEELING_BY_EXTERNAL_UUID = 'GET_FEELING_BY_EXTERNAL_UUID'
 SCOPE_GET_FEELING_BY_INTERNAL_UUID = 'GET_FEELING_BY_INTERNAL_UUID'
 SCOPE_GET_FEELING_BY_ORDER_ID = 'GET_FEELING_BY_ORDER_ID'
 SCOPE_GET_ALL_COMPANIES = 'GET_ALL_COMPANIES'
+SCOPE_CREATE_COMPANIES = 'CREATE_COMPANIES'
 SCOPE_GET_COMPANY_BY_ID = 'GET_COMPANY_BY_ID'
 SCOPE_GET_CONTACT_CHANNELS = 'GET_CONTACT_CHANNEL'
 SCOPE_CREATE_FEELING = 'CREATE_FEELING'
@@ -64,11 +65,27 @@ class RoleScope(db.Model):
 
 
 
+class UserCompany(db.Model):
+    __tablename__ = 'user_company'
+
+    id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id_'), nullable=False)
+    user = db.relationship("User")
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id_'), nullable=False)
+    company = db.relationship("Company")
+
+    def __init__(self, user, company):
+        self.user = user
+        self.company = company
+
+        
+
 class Company(db.Model):
     __tablename__ = 'company'
 
     id_ = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), unique=True, nullable=False)
+    apikey = db.Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True)
     created_at = db.Column(db.DateTime(timezone=True), default=func.now())
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
@@ -79,6 +96,13 @@ class Company(db.Model):
         return {
             'id': self.id_,
             'name': self.name
+        }
+
+    def as_dict_for_admin(self):
+        return {
+            'id': self.id_,
+            'name': self.name,
+            'apikey': self.apikey
         }
 
 
@@ -94,7 +118,6 @@ class FeelingFile(db.Model):
     feeling = db.relationship("Feeling")
 
     def __init__(self, feeling, name):
-        # self.uuid = str(uuid.uuid4())
         self.feeling = feeling
         self.name = name
 
@@ -181,6 +204,14 @@ class User(db.Model):
             password, current_app.config.get('BCRYPT_LOG_ROUNDS')
         ).decode()
         self.role = role
+
+    def as_dict(self):
+        return {
+            'id': self.id_,
+            'email': self.email,
+            'name': self.name,
+            'role_id': self.role_id
+        }
 
     def encode_auth_token(self, user_id):
         """

@@ -1,65 +1,58 @@
 from flask import request, make_response, jsonify, current_app
-from emotion.models import User
+from emotion.models import User, Scope, RoleScope
 from werkzeug.exceptions import RequestEntityTooLarge
+from emotion.api.helper.helpers import check_apikey
+from emotion.models import ROLE_COMPANY
+from emotion.api.views.http_error import HTTPError
 from functools import wraps
 import math
 import os
 
 
 
-def token_required(view_method):
-	@wraps(view_method)
-	def decorated(*args, **kwargs):
-		auth_header = request.headers.get('Authorization')
-		if auth_header:
-			try:
-				auth_token = auth_header.split(" ")[1]
-			except IndexError:
-				responseObject = {
-					'status': 'fail',
-					'message': 'Bearer token malformed.'
-				}
-				return make_response(jsonify(responseObject)), 401
-			if auth_header.split(" ")[0] != "Token":
-				responseObject = {
-					'status': 'fail',
-					'message': 'Bearer token malformed.'
-				}
-				return make_response(jsonify(responseObject)), 401					
-		else:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Provide a valid auth token.'
-			}
-			return make_response(jsonify(responseObject)), 401
+def user_restricted(scopes):
+	def decorator(func):
+		@wraps(func)
+		def wrapper(*args, **kwargs):
+			auth_header = request.headers.get('Authorization')
+			if auth_header is None:
+				return HTTPError(401, 'Missing Authorization header').to_dict()
 
-		user_id = User.decode_auth_token(auth_token)
+			auth_header = auth_header.split(" ")
+			if len(auth_header) <= 1 or auth_header[0] != 'Token' or auth_header[1] is None:
+				return HTTPError(401, 'Token header malformed').to_dict()
 
-		if isinstance(user_id, str):
-			responseObject = {
-				'status': 'fail',
-				'message': user_id
-			}
-			return make_response(jsonify(responseObject)), 401			
+			auth_token = auth_header[1]
+			user_id = User.decode_auth_token(auth_token)
+			user = User.query.filter_by(id_=user_id).first()
+			if not user:
+				return HTTPError(401, 'User not found').to_dict()
 
-		user = User.query.filter_by(id_=user_id).first()
-		if not user:
-			responseObject = {
-				'status': 'fail',
-				'message': 'User not found.'
-			}
-			return make_response(jsonify(responseObject)), 401
+			print(user.role.name, user.email)
+			if user.role.name == ROLE_COMPANY:
+				print("IS COMPANY")
+				check_apikey_result = check_apikey(request, user)
+				if isinstance(check_apikey_result, HTTPError):
+					return check_apikey_result
 
-		return view_method(*args, **kwargs)
+			for scope in scopes:
+				restricted_scope = Scope.query.filter_by(name=scope).first()
+				role_scope = RoleScope.query.filter_by(scope=restricted_scope).filter_by(role=user.role).first()
+				if role_scope is None:
+					print(scope)
+					return HTTPError(403, 'Access denied.').to_dict()
 
-	return decorated
+			print(user_id, scopes)
+			return func(*args, **kwargs)
+		return wrapper
+	return decorator
 
 
 
 def check_file(view_method):
 	@wraps(view_method)
 	def decorated(*args, **kwargs):
-
+		print("123123")
 		if 'file' in request.files:
 			param_name = 'file'
 		elif 'file[]' in request.files:

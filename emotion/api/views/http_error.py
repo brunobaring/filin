@@ -8,6 +8,8 @@ class HTTPError(Exception):
 		Exception.__init__(self)
 		if code == 404:
 			self.status = "Not Found"
+		elif code == 403:
+			self.status = "Forbidden"
 		elif code == 401:
 			self.status = "Unathorized"
 		elif code == 400:

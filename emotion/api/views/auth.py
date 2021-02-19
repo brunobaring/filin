@@ -1,8 +1,9 @@
 from flask import Blueprint, request, make_response, jsonify
 from flask.views import MethodView
 from flask_bcrypt import Bcrypt
-from emotion.models import User, Role, ROLE_ADMIN
-from emotion.api.helper.decorators import token_required
+from emotion.models import User, Role, Company, UserCompany, ROLE_ADMIN, ROLE_COMPANY, ROLE_USER
+from emotion.api.helper.decorators import user_restricted
+from emotion.api.helper.helpers import has_apikey
 from emotion.api.views.http_error import HTTPError
 from emotion import db
 
@@ -26,31 +27,30 @@ class AuthAPI(MethodView):
 			return HTTPError(404, 'Invalid url path.').to_dict()
 
 
+
 	def post_register(self):
-		post_data = request.get_json()
-
-		user = User.query.filter_by(email=post_data.get('email')).first()
-		role = Role.query.filter_by(name=ROLE_ADMIN).first()
-		if role is None:
-			return HTTPError(400, 'No role detected. Contact admin').to_dict()
-
-		if user:
-			return HTTPError(400, 'User already exists. Please Log in.').to_dict()
-
-		email = post_data.get('email')
-		name = post_data.get('name')
-		password = post_data.get('password')
-
-		print(email, name, password)
+		email = request.form.get('email')
+		name = request.form.get('name')
+		password = request.form.get('password')
 		if email is None or name is None or password is None:
 			return HTTPError(400, 'Expected params ["email", "name", "password"]').to_dict()
 
-		user = User(
-			email=email,
-			name=name,
-			password=password,
-			role=role
-		)
+		user = User.query.filter_by(email=email).first()
+		if user:
+			return HTTPError(400, 'User already exists. Please Log in.').to_dict()
+
+		company = has_apikey(request)
+		if isinstance(company, Company):
+			role = Role.query.filter_by(name=ROLE_COMPANY).first()
+			user = User(email, name, password, role)
+			user_company = UserCompany(user, company)
+			db.session.add(user_company)
+		elif '+boss@' in email:
+			role = Role.query.filter_by(name=ROLE_ADMIN).first()
+			user = User(email, name, password, role)
+		else:
+			role = Role.query.filter_by(name=ROLE_USER).first()
+			user = User(email, name, password, role)
 
 		db.session.add(user)
 		db.session.commit()
@@ -62,11 +62,10 @@ class AuthAPI(MethodView):
 		return HTTPError(200).to_dict(responseObject)
 
 
-	def post_login(self):
-		post_data = request.get_json()
 
-		email = post_data.get('email')
-		password = post_data.get('password')
+	def post_login(self):
+		email = request.form.get('email')
+		password = request.form.get('password')
 		if email is None or password is None:
 			return HTTPError(400, 'Expected params ["email", "password"]').to_dict()
 

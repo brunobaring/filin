@@ -2,8 +2,8 @@ from flask import Blueprint, request, make_response, jsonify, current_app, send_
 from flask.views import MethodView
 from flask_bcrypt import Bcrypt
 from emotion.models import Feeling, FeelingFile, SCOPE_GET_FEELING_BY_EXTERNAL_UUID
-from emotion.api.helper.decorators import token_required
-from emotion.api.helper.helpers import save_file, is_valid_uuid, has_permission
+from emotion.api.helper.decorators import user_restricted
+from emotion.api.helper.helpers import save_file, is_valid_uuid
 from emotion.api.views.http_error import HTTPError
 from emotion import db
 import os, pathlib, io, zipfile
@@ -16,10 +16,8 @@ external_blueprint = Blueprint('external', __name__)
 
 class ExternalAPI(MethodView):
 
+	@user_restricted([SCOPE_GET_FEELING_BY_EXTERNAL_UUID])
 	def post(self):
-		if has_permission(request, SCOPE_GET_FEELING_BY_EXTERNAL_UUID) is None:
-			return HTTPError(403, 'Access denied.').to_dict()
-
 		if 'external_uuid' not in request.form:
 			return HTTPError(400, 'Expected params ["external_uuid"]').to_dict()
 
@@ -57,10 +55,9 @@ class ExternalAPI(MethodView):
 		)
 
 
-	def get(self):
-		if has_permission(request, SCOPE_GET_FEELING_BY_EXTERNAL_UUID) is None:
-			return HTTPError(403, 'Access denied.').to_dict()
 
+	@user_restricted([SCOPE_GET_FEELING_BY_EXTERNAL_UUID])
+	def get(self):
 		if 'external_uuid' not in request.form:
 			return HTTPError(400, 'Expected params ["external_uuid"]').to_dict()
 
