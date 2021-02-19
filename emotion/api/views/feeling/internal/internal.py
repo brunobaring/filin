@@ -5,6 +5,7 @@ from emotion.models import User, Feeling, Receiver, FeelingFile, SCOPE_GET_FEELI
 from emotion.api.helper.decorators import user_restricted, check_file
 from emotion.api.helper.helpers import save_file, is_valid_uuid
 from emotion.api.views.http_error import HTTPError
+from sqlalchemy import exc
 
 
 
@@ -20,7 +21,10 @@ class FeelingInternalAPI(MethodView):
 			return HTTPError(400, 'Missing /:internal_uuid').to_dict()
 
 		if is_valid_uuid(str(internal_uuid)):
-			feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
+			try:
+				feeling = Feeling.query.filter_by(internal_uuid=internal_uuid).first()
+			except exc.SQLAlchemyError:
+				return HTTPError(400, 'Feeling not found').to_dict()
 		else:
 			return HTTPError(400, 'Invalid UUID format.').to_dict()
 

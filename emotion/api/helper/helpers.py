@@ -3,6 +3,7 @@ from uuid import UUID
 from emotion import db
 from emotion.models import User, Scope, Role, RoleScope, Company, UserCompany
 from emotion.api.views.http_error import HTTPError
+from sqlalchemy import exc
 import os
 
 
@@ -38,33 +39,44 @@ def save_file(feeling, file, feeling_file):
 
 
 
-def has_apikey(request):
-	auth_key_header = request.headers.get('Authorization-Key')
-	if auth_key_header is None:
-		return HTTPError(401, 'Missing Authorization-Key header').to_dict()
+def has_apikey_header(request):
+	apikey_header = request.headers.get('Authorization-Key')
+	if 'Authorization-Key' in request.headers:
+		return request.headers.get('Authorization-Key')
+	else:
+		return False
+
+
+
+def is_apikey_valid(request):
+	auth_key_header = has_apikey_header(request)
+	if auth_key_header == '':
+		return HTTPError(401, 'No apikey detected.').to_dict()
+	elif auth_key_header is False:
+		return False
+	print(auth_key_header, "AA", type(auth_key_header))
 	auth_key_header = auth_key_header.split(" ")
 	if len(auth_key_header) <= 1 or auth_key_header[0] != 'Key' or auth_key_header[1] is None:
 		return HTTPError(401, 'Key header malformed').to_dict()
 
 	auth_key_token = auth_key_header[1]
-	company = Company.query.filter_by(apikey=auth_key_token).first()
+
+	try:
+		company = Company.query.filter_by(apikey=auth_key_token).first()
+	except exc.SQLAlchemyError:
+		return HTTPError(400, 'No company found').to_dict()
+
 	if company is None:
 		return HTTPError(403, 'Access denied.').to_dict()
 
 	return company
 
-def check_apikey(request, user):
-	auth_key_header = request.headers.get('Authorization-Key')
-	if auth_key_header is None:
-		return HTTPError(401, 'Missing Authorization-Key header').to_dict()
-	auth_key_header = auth_key_header.split(" ")
-	if len(auth_key_header) <= 1 or auth_key_header[0] != 'Key' or auth_key_header[1] is None:
-		return HTTPError(401, 'Key header malformed').to_dict()
 
-	auth_key_token = auth_key_header[1]
-	company = Company.query.filter_by(apikey=auth_key_token)
-	if company is None:
-		return HTTPError(403, 'Access denied.').to_dict()
+
+def check_apikey(request, user):
+	company = is_apikey_valid(request)
+	if not isinstance(company, Company):
+		return company
 
 	user_company = UserCompany.query.filter_by(company_id=company.id_).filter_by(user_id=user.id_).first()
 	if user_company is None:

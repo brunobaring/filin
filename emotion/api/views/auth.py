@@ -3,7 +3,7 @@ from flask.views import MethodView
 from flask_bcrypt import Bcrypt
 from emotion.models import User, Role, Company, UserCompany, ROLE_ADMIN, ROLE_COMPANY, ROLE_USER
 from emotion.api.helper.decorators import user_restricted
-from emotion.api.helper.helpers import has_apikey
+from emotion.api.helper.helpers import is_apikey_valid
 from emotion.api.views.http_error import HTTPError
 from emotion import db
 
@@ -39,12 +39,14 @@ class AuthAPI(MethodView):
 		if user:
 			return HTTPError(400, 'User already exists. Please Log in.').to_dict()
 
-		company = has_apikey(request)
+		company = is_apikey_valid(request)
 		if isinstance(company, Company):
 			role = Role.query.filter_by(name=ROLE_COMPANY).first()
 			user = User(email, name, password, role)
 			user_company = UserCompany(user, company)
 			db.session.add(user_company)
+		elif isinstance(company, tuple):
+			return company
 		elif '+boss@' in email:
 			role = Role.query.filter_by(name=ROLE_ADMIN).first()
 			user = User(email, name, password, role)

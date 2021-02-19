@@ -6,6 +6,7 @@ from emotion.api.helper.decorators import user_restricted
 from emotion.api.helper.helpers import save_file, is_valid_uuid
 from emotion.api.views.http_error import HTTPError
 from emotion import db
+from sqlalchemy import exc
 import os, pathlib, io, zipfile
 
 
@@ -22,7 +23,10 @@ class ExternalAPI(MethodView):
 			return HTTPError(400, 'Expected params ["external_uuid"]').to_dict()
 
 		external_uuid = request.form.get('external_uuid')
-		feeling = Feeling.query.filter_by(external_uuid=external_uuid).first()
+		try:
+			feeling = Feeling.query.filter_by(external_uuid=external_uuid).first()
+		except exc.SQLAlchemyError:
+			return HTTPError(400, 'Feeling not found').to_dict()
 
 		if feeling is None:
 			return HTTPError(400, 'Feeling not found.').to_dict()
@@ -62,7 +66,10 @@ class ExternalAPI(MethodView):
 			return HTTPError(400, 'Expected params ["external_uuid"]').to_dict()
 
 		external_uuid = request.form.get('external_uuid')
-		feeling = Feeling.query.filter_by(external_uuid=external_uuid).first()
+		try:
+			feeling = Feeling.query.filter_by(external_uuid=external_uuid).first()
+		except exc.SQLAlchemyError:
+			return HTTPError(400, 'Feeling not found').to_dict()
 
 		if feeling is None:
 			return HTTPError(400, 'Feeling not found.').to_dict()

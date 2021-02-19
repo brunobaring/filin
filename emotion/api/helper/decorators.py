@@ -28,9 +28,7 @@ def user_restricted(scopes):
 			if not user:
 				return HTTPError(401, 'User not found').to_dict()
 
-			print(user.role.name, user.email)
 			if user.role.name == ROLE_COMPANY:
-				print("IS COMPANY")
 				check_apikey_result = check_apikey(request, user)
 				if isinstance(check_apikey_result, HTTPError):
 					return check_apikey_result
@@ -52,34 +50,21 @@ def user_restricted(scopes):
 def check_file(view_method):
 	@wraps(view_method)
 	def decorated(*args, **kwargs):
-		print("123123")
 		if 'file' in request.files:
 			param_name = 'file'
 		elif 'file[]' in request.files:
 			param_name = 'file[]'
 		else:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Missing files.'
-			}
-			return make_response(jsonify(responseObject)), 400			
+			return HTTPError(400, 'Missing files.').to_dict()
 
 		try:
 			file = request.files[param_name]
 		except RequestEntityTooLarge as e:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Upload should have ' + str(math.floor(current_app.config['MAX_CONTENT_LENGTH'] / 1000000)) + 'MB max.'
-			}
-			return make_response(jsonify(responseObject)), 401
+			return HTTPError(400, 'Upload should have ' + str(math.floor(current_app.config['MAX_CONTENT_LENGTH'] / 1000000)) + 'MB max.').to_dict()
 		
 		file_ext = os.path.splitext(file.filename)[1]
 		if file_ext not in current_app.config['UPLOAD_EXTENSIONS']:
-			responseObject = {
-				'status': 'fail',
-				'message': 'Support only *' + (', *').join(current_app.config['UPLOAD_EXTENSIONS'])
-			}
-			return make_response(jsonify(responseObject)), 400			
+			return HTTPError(400, 'Support only *' + (', *').join(current_app.config['UPLOAD_EXTENSIONS'])).to_dict()
 
 		return view_method(*args, **kwargs)
 

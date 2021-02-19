@@ -89,6 +89,7 @@ class DefaultsAPI(MethodView):
 		db.session.add(RoleScope(obj_ROLE_USER, obj_SCOPE_DELETE_FEELING_FILE))
 		db.session.add(RoleScope(obj_ROLE_USER, obj_SCOPE_CREATE_FEELING_FILE))
 		db.session.add(RoleScope(obj_ROLE_USER, obj_SCOPE_GET_USER))
+		db.session.add(RoleScope(obj_ROLE_USER, obj_SCOPE_GET_CONTACT_CHANNELS))
 		db.session.add(RoleScope(obj_ROLE_ADMIN, obj_SCOPE_GET_FEELING_BY_INTERNAL_UUID))
 		db.session.add(RoleScope(obj_ROLE_ADMIN, obj_SCOPE_GET_USER))
 		db.session.add(RoleScope(obj_ROLE_ADMIN, obj_SCOPE_GET_FEELING_BY_EXTERNAL_UUID))
@@ -100,6 +101,7 @@ class DefaultsAPI(MethodView):
 		db.session.add(RoleScope(obj_ROLE_ADMIN, obj_SCOPE_DELETE_FEELING_FILE))
 		db.session.add(RoleScope(obj_ROLE_ADMIN, obj_SCOPE_CREATE_FEELING_FILE))
 		db.session.add(RoleScope(obj_ROLE_ADMIN, obj_SCOPE_GET_FEELING_BY_ORDER_ID))
+		db.session.add(RoleScope(obj_ROLE_COMPANY, obj_SCOPE_GET_USER))
 		db.session.add(RoleScope(obj_ROLE_COMPANY, obj_SCOPE_GET_FEELING_BY_EXTERNAL_UUID))
 		db.session.add(RoleScope(obj_ROLE_COMPANY, obj_SCOPE_GET_FEELING_BY_ORDER_ID))
 

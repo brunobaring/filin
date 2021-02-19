@@ -48,7 +48,11 @@ class Role(db.Model):
     def __init__(self, name):
         self.name = name
 
-
+    def as_dict(self):
+        return {
+            'id': self.id_,
+            'name': self.name
+        }
 
 class RoleScope(db.Model):
     __tablename__ = 'role_scope'
@@ -210,7 +214,7 @@ class User(db.Model):
             'id': self.id_,
             'email': self.email,
             'name': self.name,
-            'role_id': self.role_id
+            'role': self.role.as_dict()
         }
 
     def encode_auth_token(self, user_id):
