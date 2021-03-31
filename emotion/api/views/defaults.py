@@ -12,7 +12,23 @@ defaults_blueprint = Blueprint('defaults', __name__)
 
 class DefaultsAPI(MethodView):
 
+	def create(self):
+		db.create_all()
+		db.session.commit()
+		return HTTPError(201).to_dict()
+
+	def drop(self):
+		db.drop_all()
+		db.session.commit()
+		return HTTPError(200).to_dict()
+
 	def post(self):
+		route = request.path.split('/')[-1]
+
+		if route == 'create':
+			return self.create()
+		elif route == 'drop':
+			return self.drop()
 
 		db.drop_all()
 		db.create_all()
@@ -28,6 +44,7 @@ class DefaultsAPI(MethodView):
 		# db.session.query(ContactChannel).delete()
 		# db.session.query(BlacklistToken).delete()
 
+		# drop table scope, role, role_scope, user_company, company, feeling_file, feeling, "user", contact_channel, receiver, blacklist_tokens;
 		db.session.add(ContactChannel('whatsapp'))
 		db.session.add(ContactChannel('email'))
 		db.session.add(ContactChannel('telegram'))
@@ -115,4 +132,6 @@ defaults_view = DefaultsAPI.as_view('defaults_api')
 
 
 
-defaults_blueprint.add_url_rule('/defaults', view_func=defaults_view, methods=['POST'])
+defaults_blueprint.add_url_rule('/defaults/create', view_func=defaults_view, methods=['POST'])
+defaults_blueprint.add_url_rule('/defaults/fill', view_func=defaults_view, methods=['POST'])
+defaults_blueprint.add_url_rule('/defaults/drop', view_func=defaults_view, methods=['POST'])
